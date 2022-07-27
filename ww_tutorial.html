@@ -35,7 +35,30 @@
             choices: ["Click here to continue"],
         };          
         timeline.push(welcome_block);
-
+        
+        //full_screen
+        var open_fullscreen = {
+        type: jsPsychFullscreen,
+        fullscreen_mode: true,
+        message: `
+        <p style="font: 16pt 微软雅黑; text-align: left; line-height: 1.6em">
+        <b>
+        测验将在一个「全屏页面」开始，为确保最佳效果，请您：<br/>
+        （1）在电脑上进行测验，并使用主流浏览器打开本网页<br/>
+        &emsp;&emsp;（Chrome、Edge、Firefox、Safari等，不要用IE）<br/>
+        （2）请将输入法切换至英文状态<br/>
+        （3）关掉电脑上其他正在运行的程序或将其最小化<br/>
+        （4）将手机调至静音，并尽可能减少环境噪音干扰<br/>
+        （5）在测验过程中不要退出全屏<br/>
+        （6）务必认真作答<br/><br/>
+        </b>
+         如果您同意参与，并且清楚理解了上述要求，请点击开始：
+        </p>`,
+        button_label: '点击这里全屏开始',
+        delay_after: 100
+        };
+        timeline.push(open_fullscreen);
+        
         //instruction
         var instruction_block = {
             data:{
@@ -59,8 +82,7 @@
                 <p><b>按左键</b></p></div>
                 <div style = 'float:right;'> <img src = 'image/orange.png'/>
                 <p><b>按右键</b></p></div>
-                <br><br>
-                <p>点击下一步后将开始练习，请做好准备</p>
+                <p style="font: bold 16pt 微软雅黑; text-align: center; color: #B22222">点击下一步后将开始练习，请做好准备</p>
                 `,
             ],
             show_clickable_nav:true

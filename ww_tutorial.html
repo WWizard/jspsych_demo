@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="dist/jspsych.js"></script>
+        <script src="dist/plugin-fullscreen.js"></script>
+        <script src="dist/plugin-html-button-response.js"></script>
+        <script src="dist/plugin-instructions.js"></script>
+        <script src="dist/plugin-image-keyboard-response.js"></script>
+        <script src="dist/plugin-html-keyboard-response.js"></script>
+        <link rel="stylesheet" href="dist/jspsych.css">
+
+    </head>
+    <body>
+        
+    </body>
+    <script>
+        
+        var jsPsych =initJsPsych({
+            on_finish: function() {
+            jsPsych.data.displayData();
+            jsPsych.data.get().localSave("csv","data.csv");
+            }
+
+        });
+        // timeline
+        var timeline = [];
+
+        // welcome
+        var welcome_block = {
+            type:jsPsychHtmlButtonResponse,
+            data:{
+                display_type:"welome"
+            },
+            stimulus:"Welcome to the experiment",
+            choices: ["Click here to continue"],
+        };          
+        timeline.push(welcome_block);
+
+        //instruction
+        var instruction_block = {
+            data:{
+                display_type:"instruction"
+            },
+            type:jsPsychInstructions,
+            pages:[
+                "<p>这是个反应时任务，一个圆圈会呈现在屏幕中间 </p>" + 
+                "<p>看到蓝色圆圈请按左方向键，看到橙色圆圈请按右方向键<p>"+
+                "<div style = 'float:left;'> <img src = 'image/blue.png'/>" +    
+                "<p>按左键</p></div>" +
+                "<div style = 'float:right;'> <img src = 'image/orange.png'/>" +    
+                "<p>按右键</p></div>",
+
+                "<p style=\"font: bold 32pt 微软雅黑; color: #B22222\"> 可以改变字体字号颜色等 </p>",
+                
+                // 推荐下面的用法
+                `<p>这是个反应时任务，一个圆形会呈现在屏幕中间 </p>
+                <p>看到<b>蓝色图形</b>请按<b>左方向键</b>，看到<b>橙色图形</b>请按<b>右方向键</b> </p>
+                <div style = 'float:left;'> <img src = 'image/blue.png'/>  
+                <p><b>按左键</b></p></div>
+                <div style = 'float:right;'> <img src = 'image/orange.png'/>
+                <p><b>按右键</b></p></div>`,
+            ],
+            show_clickable_nav:true
+        };
+        timeline.push(instruction_block);
+
+        var pra_stimuli = [
+            {stimulus:"image/blue.png", 
+            data:{
+                display_type:"pra",
+                correct_response:"arrowleft"
+            }
+            },
+
+            {stimulus:"image/orange.png", 
+            data:{
+                display_type:"pra",
+                correct_response:"arrowright"
+            }
+            },           
+        ];
+
+        var fix_duration = [500,1000,1500];
+
+        var trial = {
+            type:jsPsychImageKeyboardResponse,
+            stimulus:jsPsych.timelineVariable('stimulus'),
+            data:jsPsych.timelineVariable('data'),
+            choices:["arrowleft","arrowright"],
+            on_finish:function(data){
+                //cacluate correct of incorrect in ~~~each~~~~ trial
+                //match key_press with correct_response 
+                if (data.response == data.correct_response) {
+                    data.accuracy = 1
+                } else {
+                    data.accuracy = 0
+                }
+            },
+          
+        };
+
+
+        //fixation
+        var fixation_trial = {
+            data:{display_type:"fix"},
+            type:jsPsychHtmlKeyboardResponse,
+            stimulus:`<p style= 'font-size: 96px'>+</p>`,
+            choices:"NO_KEYS",
+            trial_duration: jsPsych.randomization.sampleWithoutReplacement(fix_duration, 1),
+
+        };
+
+        
+        //feedback
+        var feedback = {
+            data:{display_type:"feedback"},
+            type:jsPsychHtmlKeyboardResponse,
+            stimulus:function(){
+                var last_trial_acc = jsPsych.data.get().last(1).values()[0].accuracy
+                var last_trial_rt = jsPsych.data.get().last(1).values()[0].rt
+                if (last_trial_acc == 1){
+                    return `<p>Correct</p>
+                            <p>Your response time was ${last_trial_rt}ms</p> `
+                } else
+                    return "Incorrect"
+            },
+            trial_duration:1000,
+            choices:"NO_KEYS",
+           
+        };
+
+        //sequence
+        var pra_seq = {
+            timeline:[fixation_trial, trial,feedback],
+            timeline_variables: pra_stimuli,
+            randomize_order: true,
+            repetitions:2,
+        };
+
+        timeline.push(pra_seq);
+
+        //练习结束
+        var pra_end = {
+            data:{display_type:"continue"},
+            type:jsPsychHtmlKeyboardResponse,
+            stimulus:`练习结束，请按空格键开始正式实验`,
+            choices:" ",
+            trial_duration: null
+
+        };
+        timeline.push(pra_end);
+
+        var test_stimuli = [
+            {stimulus:"image/blue.png", 
+            data:{
+                display_type:"test",
+                correct_response:"arrowleft"
+            }
+            },
+
+            {stimulus:"image/orange.png", 
+            data:{
+                display_type:"test",
+                correct_response:"arrowright"
+            }
+            },           
+        ];
+
+       //test sequence
+        var test_seq = {
+            timeline:[fixation_trial, trial],
+            timeline_variables: test_stimuli,
+            randomize_order: true,
+            repetitions:10,
+
+        };
+
+        timeline.push(test_seq);
+
+        //data aggregation
+        var debrief_block = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: function() {
+
+                var trials = jsPsych.data.get().filter({display_type:"test"});
+                var correct_trials = trials.filter({accuracy: 1});
+                var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+                var rt = Math.round(correct_trials.select('rt').mean());
+
+                return `<p>你的正确率是${accuracy}%</p>
+                <p>你的平均反应时为 ${rt}ms</p>
+                <p>按任意键继续</p>`;
+            },
+
+            };
+        timeline.push(debrief_block);
+
+        //finish
+        var finish = {
+            data:{display_type:"finish"},
+            type:jsPsychHtmlKeyboardResponse,
+            stimulus:`实验结束，请按任意键退出`,
+            choices:"ALL_KEYS",
+            trial_duration: null
+
+        };
+
+
+
+
+
+
+
+        
+        timeline.push(finish);
+
+
+
+
+
+
+        //https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_event_key_key
+        // Practice
+        // var blue_trial = {
+
+        //     type: jsPsychImageKeyboardResponse,
+        //     data:{
+        //         display_type:"pra"
+        //     },
+        //     stimulus:"img/blue.png",
+        //     choices:["arrowleft","arrowright"], 
+        //     trial_duration:null,
+        // };
+
+        // var orange_trial = {
+
+        //     type: jsPsychImageKeyboardResponse,
+        //     data:{
+        //         display_type:"pra"
+        //     },
+        //     stimulus:"img/orange.png",
+        //     choices:["arrowleft","arrowright"],
+        //     trial_duration:null,
+        // };
+
+        // timeline.push(blue_trial);
+
+
+        jsPsych.run(timeline);
+
+
+
+
+
+
+
+    </script>
+
+</html>
